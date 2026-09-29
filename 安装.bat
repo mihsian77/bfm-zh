@@ -4,7 +4,7 @@ title BFM 中文美化版 - 安装程序
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo   BFM 中文美化版 v1.2.1-zh.3 安装程序
+echo   BFM 中文美化版 v1.2.1-zh.4 安装程序
 echo ============================================
 echo.
 
@@ -120,17 +120,6 @@ if exist "%TARGET_DIR%\wfm.exe" (
 )
 echo.
 
-echo.
-
-echo.
-echo ============================================
-echo   Press any key to install 7-Zip...
-echo   Install path: Z:\opt\apps\7-Zip
-echo ============================================
-pause
-"%~dp07z2603-x64.exe"
-
-echo.
 echo ============================================
 echo   Install complete!
 echo ============================================
