@@ -7,6 +7,11 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
+// SysLink 控件（NMLINK/PNMLINK）需要 commctrl v6+
+
+#ifndef _WIN32_IE
+#define _WIN32_IE 0x0600
+#endif
 #include <windows.h>
 #include <commctrl.h>
 #include <wingdi.h>
@@ -38,6 +43,10 @@ static inline void timetToFileTime(time_t t, LPFILETIME result) {
 }
 
 #include "resource.h"
+#include "theme.h"
+#include "config.h"
+#include "favorites.h"
+#include "diff.h"
 #include "content_view.h"
 #include "toolbar.h"
 #include "navbar.h"
@@ -48,6 +57,8 @@ static inline void timetToFileTime(time_t t, LPFILETIME result) {
 #include "file_actions.h"
 #include "file_utils.h"
 #include "input_dialog.h"
+
+extern HINSTANCE globalHInstance;
 #include "strings.h"
 
 #define MEMFREE(x) \
@@ -63,10 +74,34 @@ void navigateToFileNode(struct FileNode* node);
 void navigateToPath(wchar_t* path);
 void navigateUp();
 void navigateRefresh();
+void tabNew(void);
+void tabCloseActive(void);
+void navGoBack(void);
+void navGoForward(void);
+void navPushHistory(wchar_t* path);
+void recentAdd(wchar_t* path);
+void recentMenu(void);
+void onMenuItemGameModeClick(void);
+void onMenuItemComparePanesClick(void);
+void onMenuItemLauncherChooseClick(void);
+void cvSyncOtherPane(const wchar_t* targetName);
+void cvGetFirstSelected(wchar_t* path, int* type);
+void cvToggleMemoryDisplay(void);
+bool cvMemoryVisible(void);
+void cvApplyFont(HFONT font);
+void navbarApplyFont(HFONT font);
+void previewUpdate(void);
 void openFileNode(struct FileNode* node);
 void GetWindowRectInParent(HWND hwnd, RECT* rect);
 void resizeControls();
+#define WM_USER_EXTRACT_DONE (WM_USER + 101)
+#define WM_USER_BOOST_START (WM_USER + 102)
+#define WM_USER_BOOST_DONE  (WM_USER + 103)
+#define WM_USER_BOOST_RESULT (WM_USER + 104)  // wParam=释放内存MB, lParam=模式(0均衡/1激进)
 HFONT getUIFont(void);
+void createStatusbar(void);
+void setStatusbarText(wchar_t* text);
+void setStatusbarParts(wchar_t* p0, wchar_t* p1, wchar_t* p2, wchar_t* p3);
 bool isDarkMode(void);
 COLORREF themeFaceBg(void);
 COLORREF themeFaceText(void);
