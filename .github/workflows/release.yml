@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and package (统一构建脚本)
+        run: bash scripts/build.sh release bfm-zh-x64.zip
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          cat > release_notes.md << EOF
+          ## 📦 安装包内容
+
+          | 文件/目录 | 说明 |
+          |---|---|
+          | wfm.exe | 汉化增强版主程序（x64） |
+          | libcdio.dll | ISO 镜像支持库 |
+          | 7-Zip/ | 完整 7-Zip 便携版（含中文语言包，无需安装） |
+          | 安装.bat | 一键安装（关进程→备份→部署7-Zip→复制→启动） |
+          | 卸载还原.bat | 一键还原原版 |
+
+          ---
+
+          ## 📥 安装方法
+
+          1. 下载 bfm-zh-x64.zip
+          2. 解压后双击 安装.bat
+          3. 脚本自动完成：关闭 WFM → 备份原版 → 部署 7-Zip → 复制文件 → 启动 WFM
+
+          手动方式：将 wfm.exe、libcdio.dll 覆盖到 C:\windows\
+          还原方式：双击 卸载还原.bat
+
+          ---
+
+          ## ⚖️ 许可证
+
+          - 本项目基于 The412Banner/banner-file-manager（GPL-3.0-or-later）修改
+          - 上游含 BrunoSX 的 WFM 代码（MIT），声明见 LICENSE.WFM
+          - 7-Zip 为独立软件（LGPL + unRAR 限制），仅命令行调用，不构成衍生作品
+          EOF
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BFM 中文美化版 ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.notes }}
+          files: bfm-zh-x64.zip
+          fail_on_unmatched_files: true
