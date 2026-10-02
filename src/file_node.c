@@ -86,20 +86,25 @@ void buildChildNodes(struct FileNode* parent, bool onlyDirs) {
         wcscat_s(path, MAX_PATH, L"\\*");
         HANDLE handle = FindFirstFile(path, &wfd);
         
+        int childCount = 0;
+        const int maxChildNodes = 20000;  // 防超大目录卡死UI
         do {
             if (wcscmp(wfd.cFileName, L".") == 0 || wcscmp(wfd.cFileName, L"..") == 0 ||
                (onlyDirs && (wfd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE))) continue; 
             
             if (((wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || (wfd.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE)) &&
                 (showHiddenFiles || !(wfd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))) {
+                if (++childCount > maxChildNodes) break;  // 达到上限，停止遍历
                 enum FileType type = (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TYPE_DIR : TYPE_FILE;
 
                 wchar_t* name = wcsdup(wfd.cFileName);
                 struct FileNode* child = allocFileNode(name, type);
                 child->parent = parent;
 
-                // Size + mtime are already in the enumeration result — capture them here so the
-                // content view never has to stat each file again (fillFileInfo becomes a memcpy).
+                // 大小 + 修改时间已在枚举结果中——在这里捕获它们以便
+
+                // 内容视图无需再次 stat 每个文件（fillFileInfo 变为 memcpy）。
+
                 if (type == TYPE_FILE) {
                     LARGE_INTEGER filesize;
                     filesize.LowPart = wfd.nFileSizeLow;
@@ -171,9 +176,12 @@ static void freeCurrPathFileNode() {
     currPathFileNode = NULL;
 }
 
-// Build a fresh, independent copy of node's ancestry chain (root..node) and return
-// the leaf. Used both by setCurrPathFileNode and by the dual-pane code to give each
-// pane its own path chain without aliasing.
+// 构建节点祖先链（根..节点）的全新独立副本并返回
+
+// 叶子。由 setCurrPathFileNode 和双面板代码使用，为每个
+
+// 面板拥有自己的路径链，无别名。
+
 struct FileNode* copyPathChain(struct FileNode* node) {
     struct FileNode* currNode = node;
     int count = 0;

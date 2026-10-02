@@ -15,7 +15,8 @@ void refreshContentView();
 void setViewStyle(enum ViewStyle newViewStyle);
 void searchFor(wchar_t* keyword);
 
-// Dual-pane API (implemented in content_view.c, used by main.c / navbar.c)
+// 双面板 API（在 content_view.c 中实现，由 main.c / navbar.c 使用）
+
 void cvInitPanePaths();
 void cvToggleSplit();
 bool cvIsContentView(HWND h);
@@ -26,6 +27,12 @@ bool cvActivatePaneByLabel(HWND h);
 void cvFitColumns(HWND list, int totalWidth);
 int cvActiveIdx();
 bool cvSplitOn();
+void cvToggleMemoryDisplay(void);
+bool cvMemoryVisible(void);
+bool showConfirmDialog(HWND parent, const wchar_t* title, const wchar_t* msg);
+HBITMAP cvGetFileIconBitmap(const wchar_t* path, int w, int h);
+void cvSetSort(int colIdx);  // 查看菜单排序入口：0=名称 1=类型 2=大小 3=日期
+void cvEnsureLocaleFallback(void);  // 启动时回退转区残留的Locale
 
 void onMenuItemUpClick();
 void onMenuItemOpenClick();
