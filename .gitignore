@@ -1,4 +1,36 @@
+# 编译产物
 /obj
-/libcdio
+obj/
+*.o
+*.obj
+
+# 可执行文件
 *.exe
 *.exe.dat
+*.dll
+
+# 压缩包
+*.zip
+*.tar.gz
+*.7z
+
+# 临时文件
+*.tmp
+*.bak
+*.log
+*.swp
+*~
+
+# 打包目录
+/pkg
+/release
+/dist
+
+# libcdio 源码（如有）
+/libcdio
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
