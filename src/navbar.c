@@ -1,3 +1,8 @@
+// shlwapi.h 必须在 main.h 之前：main.h 引入 <strsafe.h>，其宏会破坏
+
+// 如果先看到 strsafe.h，mingw-w64 的 shlwapi.h 声明会出问题。
+
+#include <shlwapi.h>
 #include "main.h"
 
 struct AddrButton { 
@@ -29,6 +34,13 @@ static wchar_t keyword[64] = {0};
 static bool searchEditEmpty = true;
 static struct AddrButton* addrButtons = NULL;
 static int numAddrButtons = 0;
+static int addrEditHeight = 16;  // 随字体自适应，非const
+
+// 应用字体到地址栏和搜索框（供main.c切换字体大小时调用）
+void navbarApplyFont(HFONT font) {
+    if (hwndAddrEdit) SendMessage(hwndAddrEdit, WM_SETFONT, (WPARAM)font, TRUE);
+    if (hwndSearchEdit) SendMessage(hwndSearchEdit, WM_SETFONT, (WPARAM)font, TRUE);
+}
 
 extern struct FileNode* currPathFileNode;
 extern HINSTANCE globalHInstance;
@@ -36,8 +48,10 @@ extern HWND hwndMain;
 
 HWND hwndNavbar = NULL;
 
-// Theme-aware brushes for the search field + owner-drawn navbar buttons. Recreated only
-// when the light/dark theme changes, so a brush returned to WM_CTLCOLOR* stays valid.
+// 搜索框 + 自绘导航栏按钮的主题感知画刷。仅在以下时重新创建
+
+// 当亮色/暗色主题改变时，因此返回给 WM_CTLCOLOR* 的画刷保持有效。
+
 static HBRUSH searchBgBrush = NULL;
 static HBRUSH navBtnBrush = NULL;
 static HBRUSH navBtnBrushPressed = NULL;
@@ -138,8 +152,8 @@ static void updateSearchEdit() {
     SendMessage(hwndSearchEdit, WM_GETTEXT, 64, (LPARAM)keyword);
     searchEditEmpty = wcslen(keyword) == 0;
     if (searchEditEmpty) {
-        swprintf_s(keyword, 64, L"%ls %ls", lc_str.search, currPathFileNode->name);
-        SendMessage(hwndSearchEdit, WM_SETTEXT, 0, (LPARAM)keyword);
+        // 标准占位符：仅"搜索"，不拼接目录名（避免长目录名截断显示为乱码）
+        SendMessage(hwndSearchEdit, WM_SETTEXT, 0, (LPARAM)lc_str.search);
     }
 }
 
@@ -191,7 +205,17 @@ LRESULT CALLBACK NavbarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
             const int margin = 4;
             const int searchEditWidth = 160;
             const int editWrapperHeight = buttonSize - margin;
-            const int addrEditHeight = 16;
+            // 编辑框高度随字体自适应（最小16px），避免大字体时文字偏下/被裁剪
+            HDC hdcNav = GetDC(hwnd);
+            HFONT hfNav = (HFONT)SendMessage(hwndAddrEdit, WM_GETFONT, 0, 0);
+            HFONT oldNav = hfNav ? SelectObject(hdcNav, hfNav) : NULL;
+            TEXTMETRICW tmNav;
+            if (GetTextMetricsW(hdcNav, &tmNav) && tmNav.tmHeight > 0) {
+                addrEditHeight = tmNav.tmHeight + 4;
+            }
+            if (oldNav) SelectObject(hdcNav, oldNav);
+            ReleaseDC(hwnd, hdcNav);
+            if (addrEditHeight < 16) addrEditHeight = 16;
             const int addrEditY = (editWrapperHeight - addrEditHeight) / 2;
             
             int offsetX = rect.right - (margin + buttonSize);
@@ -430,6 +454,11 @@ void createNavbar() {
     hwndAddrEdit = CreateWindowEx(0, WC_EDIT, NULL, WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_LEFT,
                                   0, 0, 0, 0, hwndAddrEditWrapper, (HMENU)NULL, globalHInstance, NULL);
     SendMessage(hwndAddrEdit, WM_SETFONT, (WPARAM)getUIFont(), 0);
+    // 文件系统路径自动补全（下拉 + 内联建议）。必须在以下之前运行
+
+    // 我们子类化编辑框，因此 AddrEditOrigWndProc 链接到 shlwapi 的处理程序。
+
+    SHAutoComplete(hwndAddrEdit, SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_FILESYS_ONLY);
     AddrEditOrigWndProc = (WNDPROC)SetWindowLongPtr(hwndAddrEdit, GWLP_WNDPROC, (LONG_PTR)AddrEditWndProc);     
     
     hwndSearchEditWrapper = CreateWindowEx(0, WC_STATIC, NULL, WS_VISIBLE | WS_CHILD | WS_BORDER, 
@@ -439,6 +468,11 @@ void createNavbar() {
     hwndSearchEdit = CreateWindowEx(0, WC_EDIT, NULL, WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_LEFT, 
                                     0, 0, 0, 0, hwndSearchEditWrapper, (HMENU)NULL, globalHInstance, NULL);
     SendMessage(hwndSearchEdit, WM_SETFONT, (WPARAM)getUIFont(), 0);
+    // 修复Wine下搜索框文字偏下/被边框裁剪：设置编辑框格式化矩形，上下内边距为0
+    {
+        RECT rc = {0, 0, 0, 0};
+        SendMessage(hwndSearchEdit, EM_SETRECTNP, 0, (LPARAM)&rc);
+    }
     SearchEditOrigWndProc = (WNDPROC)SetWindowLongPtr(hwndSearchEdit, GWLP_WNDPROC, (LONG_PTR)SearchEditWndProc);           
 
     setEditMode(false);
