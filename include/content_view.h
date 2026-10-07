@@ -54,4 +54,9 @@ void onMenuItemPropertiesClick();
 // COM 延迟初始化（第一次需要时才调用 OleInitialize）
 void ensureComInitialized(void);
 
+// 大图标视图间距配置（0=紧凑,1=标准,2=宽松）
+void cvSetLargeIconSpacing(int mode);
+int cvGetLargeIconSpacing(void);
+void cvLoadIconSpacingConfig(void);
+
 #endif

@@ -790,6 +790,9 @@ void mainMenuCommand(WPARAM wParam) {
         case ID_VIEW_THEME_LIGHT: themeSetMode(THEME_LIGHT); applyThemeAndRefresh(); break;
         case ID_VIEW_THEME_DARK: themeSetMode(THEME_DARK); applyThemeAndRefresh(); break;
         case ID_VIEW_THEME_CUSTOM: themeSetMode(THEME_CUSTOM); applyThemeAndRefresh(); break;
+        case ID_VIEW_ICON_SPACING_COMPACT: cvSetLargeIconSpacing(0); break;
+        case ID_VIEW_ICON_SPACING_NORMAL: cvSetLargeIconSpacing(1); break;
+        case ID_VIEW_ICON_SPACING_ROOMY: cvSetLargeIconSpacing(2); break;
         case ID_TAB_NEW: tabNew(); break;
         case ID_TAB_CLOSE: tabCloseActive(); break;
         case ID_TOOL_NOTEPAD: ShellExecuteW(NULL, L"open", L"notepad.exe", NULL, NULL, SW_SHOW); break;
@@ -1578,6 +1581,14 @@ static void createMainMenu() {
         AppendMenu(hmTheme, (curTheme == THEME_DARK ? checked : MF_STRING), ID_VIEW_THEME_DARK, L"深色主题");
         AppendMenu(hmTheme, (curTheme == THEME_CUSTOM ? checked : MF_STRING), ID_VIEW_THEME_CUSTOM, L"自定义");
         AppendMenu(hmView, MF_POPUP | MF_STRING, (UINT_PTR)hmTheme, L"主题");
+
+        // 大图标间距子菜单（影响图标视觉大小和标签行数）
+        HMENU hmIconSpacing = CreatePopupMenu();
+        int curSpacing = cvGetLargeIconSpacing();
+        AppendMenu(hmIconSpacing, (curSpacing == 0 ? checked : MF_STRING), ID_VIEW_ICON_SPACING_COMPACT, L"紧凑（单行标签）");
+        AppendMenu(hmIconSpacing, (curSpacing == 1 ? checked : MF_STRING), ID_VIEW_ICON_SPACING_NORMAL, L"标准（双行标签）");
+        AppendMenu(hmIconSpacing, (curSpacing == 2 ? checked : MF_STRING), ID_VIEW_ICON_SPACING_ROOMY, L"宽松（多行标签）");
+        AppendMenu(hmView, MF_POPUP | MF_STRING, (UINT_PTR)hmIconSpacing, L"大图标间距");
     }
     hViewMenu = hmView;
     // 设置视图菜单初始勾选状态
@@ -1644,6 +1655,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
     // 初始化主题 + 配置（基于注册表）
 
     themeInit();
+    cvLoadIconSpacingConfig();
 
     INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES | ICC_PROGRESS_CLASS | ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES | ICC_TAB_CLASSES };
     InitCommonControlsEx(&icc);

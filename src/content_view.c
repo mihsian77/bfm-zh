@@ -950,6 +950,12 @@ static bool gameMode = false;
 // 拖拽启动阈值（像素），比系统默认4像素大，减少误触
 #define BFM_DRAG_THRESHOLD 8
 
+// 大图标视图间距配置（0=紧凑, 1=标准, 2=宽松），影响图标大小和标签行数
+#define ICON_SPACING_COMPACT 0
+#define ICON_SPACING_NORMAL 1
+#define ICON_SPACING_ROOMY 2
+static int g_largeIconSpacing = ICON_SPACING_NORMAL;
+
 // COM 延迟初始化：第一次需要时才调用 OleInitialize，加快启动速度
 static bool g_comInitialized = false;
 void ensureComInitialized(void) {
@@ -958,6 +964,12 @@ void ensureComInitialized(void) {
         g_comInitialized = true;
     }
 }
+
+// 从注册表加载大图标间距配置（在 main.c 启动时调用）
+void cvLoadIconSpacingConfig(void) {
+    g_largeIconSpacing = cfgGetInt(L"WFM", L"LargeIconSpacing", ICON_SPACING_NORMAL);
+}
+
 static HMENU hContextMenu;
 #define MAX_MENU_IDS 256
 static struct ContextMenuItem* menuById[MAX_MENU_IDS];
@@ -1048,6 +1060,26 @@ void cvToggleMemoryDisplay(void) {
 
 bool cvMemoryVisible(void) {
     return showMemoryInStatusbar;
+}
+
+// 设置大图标视图间距（0=紧凑,1=标准,2=宽松），并持久化到注册表
+void cvSetLargeIconSpacing(int mode) {
+    if (mode < 0 || mode > 2) return;
+    g_largeIconSpacing = mode;
+    HKEY hkey;
+    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+        DWORD val = (DWORD)mode;
+        RegSetValueExW(hkey, L"LargeIconSpacing", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
+        RegCloseKey(hkey);
+    }
+    // 如果当前是大图标视图，立即刷新
+    if (activePane()->viewStyle == STYLE_LARGE_ICON) {
+        setViewStyle(STYLE_LARGE_ICON);
+    }
+}
+
+int cvGetLargeIconSpacing(void) {
+    return g_largeIconSpacing;
 }
 
 bool cvIsContentView(HWND h) {
@@ -2677,8 +2709,14 @@ void setViewStyle(enum ViewStyle newViewStyle) {
     switch (newViewStyle) {
         case STYLE_LARGE_ICON:
             wndstyle |= LVS_ICON | LVS_AUTOARRANGE;
-            // 大图标视图：增大高度给多行文件名留空间
-            ListView_SetIconSpacing(p->hwndList, 130, 160);
+            // 大图标视图：根据配置调整间距，影响图标视觉大小和标签行数
+            if (g_largeIconSpacing == ICON_SPACING_COMPACT) {
+                ListView_SetIconSpacing(p->hwndList, 100, 110);  // 紧凑：单行标签
+            } else if (g_largeIconSpacing == ICON_SPACING_ROOMY) {
+                ListView_SetIconSpacing(p->hwndList, 160, 200);  // 宽松：3-4行标签
+            } else {
+                ListView_SetIconSpacing(p->hwndList, 130, 160);  // 标准：2行标签
+            }
             break;
         case STYLE_SMALL_ICON:
             wndstyle |= LVS_SMALLICON | LVS_AUTOARRANGE;
