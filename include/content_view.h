@@ -26,6 +26,7 @@ HWND cvPaneLabel(int i);
 bool cvActivatePaneByLabel(HWND h);
 void cvFitColumns(HWND list, int totalWidth);
 int cvActiveIdx();
+void cvSetActivePane(int idx);
 bool cvSplitOn();
 void cvToggleMemoryDisplay(void);
 bool cvMemoryVisible(void);
@@ -58,5 +59,12 @@ void ensureComInitialized(void);
 void cvSetLargeIconSpacing(int mode);
 int cvGetLargeIconSpacing(void);
 void cvLoadIconSpacingConfig(void);
+
+// 双面板同步浏览
+void cvSetSyncPanes(bool enable);
+bool cvGetSyncPanes(void);
+bool cvIsSyncing(void);
+void cvSetSyncing(bool val);
+void cvLoadSyncPanesConfig(void);
 
 #endif

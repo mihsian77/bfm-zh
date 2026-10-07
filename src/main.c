@@ -1,3 +1,20 @@
+/*
+ * main.c - BFM 中文美化增强版主程序入口
+ *
+ * 功能：程序入口、主窗口创建、消息循环、全局控件管理、
+ *       标签页管理、预览窗格、语言切换、字体优化、关于对话框。
+ *
+ * 基于 The412Banner/banner-file-manager v1.2.1 修改，中文增强版由 hao728 维护。
+ * 上游含 BrunoSX WFM 代码（MIT 协议）。
+ *
+ * 主要模块：
+ *   - 主窗口类注册与创建（WFM-MainWnd）
+ *   - 标签页管理（最多 16 个，支持新建/切换/关闭）
+ *   - 预览窗格（图片缩略图/文本内容/文件属性）
+ *   - 多语言支持（中文/英文/葡萄牙语/俄语，自动检测容器 locale）
+ *   - 字体优化（优先微软雅黑，Wine 下更清晰，支持自定义字号）
+ *   - 全局控件引用（hwndMain/hwndNavbar/hwndToolbar/hwndTreeview/hwndSizebar/hwndStatusbar）
+ */
 #include "main.h"
 #include <olectl.h>   // OleLoadPicturePath for image preview
 #include <ocidl.h>    // IPicture interface
@@ -13,6 +30,7 @@ extern HWND hwndToolbar;
 extern HWND hwndTreeview;
 
 HINSTANCE globalHInstance = NULL;
+
 HWND hwndMain = NULL;
 HWND hwndTabs = NULL;
 HWND hwndPreview = NULL;
@@ -787,6 +805,7 @@ void mainMenuCommand(WPARAM wParam) {
         case ID_NAV_RECENT: recentMenu(); break;
         case ID_VIEW_GAME_MODE: onMenuItemGameModeClick(); break;
         case ID_VIEW_COMPARE: onMenuItemComparePanesClick(); break;
+        case ID_VIEW_SYNC_PANES: cvSetSyncPanes(!cvGetSyncPanes()); break;
         case ID_VIEW_THEME_LIGHT: themeSetMode(THEME_LIGHT); applyThemeAndRefresh(); break;
         case ID_VIEW_THEME_DARK: themeSetMode(THEME_DARK); applyThemeAndRefresh(); break;
         case ID_VIEW_THEME_CUSTOM: themeSetMode(THEME_CUSTOM); applyThemeAndRefresh(); break;
@@ -930,6 +949,8 @@ void previewUpdate(void) {
     }
     if (!previewCustomBmp && !previewIcon) {
         SHFILEINFOW sfi = {0};
+        ensureComInitialized();
+
         if (SHGetFileInfoW(path, 0, &sfi, sizeof(sfi),
                            SHGFI_ICON | SHGFI_LARGEICON | SHGFI_TYPENAME)) {
             if (!previewIcon) previewIcon = sfi.hIcon;
@@ -1491,6 +1512,19 @@ void navigateToPath(wchar_t* path) {
         setCurrPathFromString(path);
         navigateRefresh();
         tabsSyncCurrent(path);
+
+        // 双面板同步浏览：如果开启同步且非递归调用，另一个面板也导航到相同路径
+        if (cvGetSyncPanes() && cvSplitOn() && !cvIsSyncing()) {
+            int otherIdx = (cvActiveIdx() == 0) ? 1 : 0;
+            cvSetSyncing(true);
+            // 切换到另一个面板并导航
+            cvSetActivePane(otherIdx);
+            navPushHistory(path);
+            clearContentView();
+            setCurrPathFromString(path);
+            navigateRefresh();
+            cvSetSyncing(false);
+        }
     }
 }
 
@@ -1547,6 +1581,7 @@ static void createMainMenu() {
     AppendMenu(hmView, MF_STRING, ID_VIEW_DETAILS, lc_str.details);
     AppendMenu(hmView, MF_SEPARATOR, 0, NULL);
     AppendMenu(hmView, MF_STRING, ID_VIEW_SPLIT, lc_str.split_view);
+    AppendMenu(hmView, MF_STRING, ID_VIEW_SYNC_PANES, L"同步浏览");
     AppendMenu(hmView, MF_STRING, ID_VIEW_PREVIEW, lc_str.preview_pane);
     AppendMenu(hmView, MF_STRING, ID_VIEW_HIDDEN, lc_str.show_hidden);
     AppendMenu(hmView, MF_STRING, ID_VIEW_MEMORY, L"显示存储信息");
@@ -1648,14 +1683,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
     // 加载用户配置的字体大小（必须在第一次调用getUIFont之前）
     loadFontSize();
 
-    // 为 OLE 拖放初始化 COM
-
-    OleInitialize(NULL);  // OLE init required for drag-and-drop
+    // COM 初始化延迟到第一次真正需要时（拖放/图标提取），加快启动速度
 
     // 初始化主题 + 配置（基于注册表）
 
     themeInit();
     cvLoadIconSpacingConfig();
+    cvLoadSyncPanesConfig();
 
     INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES | ICC_PROGRESS_CLASS | ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES | ICC_TAB_CLASSES };
     InitCommonControlsEx(&icc);

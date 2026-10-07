@@ -1,3 +1,23 @@
+/*
+ * content_view.c - 文件内容视图核心模块
+ *
+ * 功能：文件列表视图（大图标/小图标/列表/详细信息四种模式）、
+ *       双面板管理、右键菜单、拖拽操作、图标提取与缓存、
+ *       图片缩略图生成、深色主题自绘、滚动条美化、列标题自绘。
+ *
+ * 这是整个项目中最复杂的文件（6000+ 行），包含核心 UI 逻辑。
+ *
+ * 主要模块：
+ *   - Pane 结构体：每个面板独立维护路径、列表视图、选中状态
+ *   - 四种视图模式：大图标/小图标/列表/详细信息，支持运行时切换
+ *   - 智能图标识别：音乐/视频/压缩包/文档/图片等格式均有对应图标
+ *   - 图片缩略图：使用 OleLoadPicturePath 加载图片并缩放显示
+ *   - exe 图标增强：优先提取原生图标，失败查找同目录 .ico 文件
+ *   - 拖拽操作：面板内/面板间/拖到外部程序，支持复制和移动
+ *   - 右键菜单：文件操作/压缩/启动增强/属性等完整菜单
+ *   - 深色主题：所有控件自绘，滚动条和列标题暗色适配
+ *   - 列排序：详细信息视图支持按名称/大小/类型/日期排序
+ */
 #include "main.h"
 #include <oleidl.h>
 #include <olectl.h>
@@ -936,6 +956,8 @@ static WNDPROC OrigWndProc;
 
 // OLE 拖放状态
 
+// 自定义拖拽启动阈值（像素），系统默认4像素太灵敏，改为8像素减少误触
+#define BFM_DRAG_THRESHOLD 8
 static POINT dragStartPt = {0};
 static bool dragPending = false;
 // 右键拖拽状态：右键按住文件拖动，松开后弹出操作菜单
@@ -947,29 +969,11 @@ static IDropTarget* g_dropTarget = NULL;
 static HWND g_dropHwnd = NULL;
 static bool gameMode = false;
 
-// 拖拽启动阈值（像素），比系统默认4像素大，减少误触
-#define BFM_DRAG_THRESHOLD 8
-
 // 大图标视图间距配置（0=紧凑, 1=标准, 2=宽松），影响图标大小和标签行数
 #define ICON_SPACING_COMPACT 0
 #define ICON_SPACING_NORMAL 1
 #define ICON_SPACING_ROOMY 2
 static int g_largeIconSpacing = ICON_SPACING_NORMAL;
-
-// COM 延迟初始化：第一次需要时才调用 OleInitialize，加快启动速度
-static bool g_comInitialized = false;
-void ensureComInitialized(void) {
-    if (!g_comInitialized) {
-        OleInitialize(NULL);
-        g_comInitialized = true;
-    }
-}
-
-// 从注册表加载大图标间距配置（在 main.c 启动时调用）
-void cvLoadIconSpacingConfig(void) {
-    g_largeIconSpacing = cfgGetInt(L"WFM", L"LargeIconSpacing", ICON_SPACING_NORMAL);
-}
-
 static HMENU hContextMenu;
 #define MAX_MENU_IDS 256
 static struct ContextMenuItem* menuById[MAX_MENU_IDS];
@@ -977,6 +981,8 @@ static struct ContextMenuItem* menuById[MAX_MENU_IDS];
 static struct Pane panes[NUM_PANES] = {0};
 static int activeIdx = 0;
 static bool splitOn = false;
+static bool g_syncPanes = false;  // 双面板同步浏览开关
+static bool g_syncing = false;     // 同步导航递归保护
 static bool showMemoryInStatusbar = true;  // 状态栏内存显示开关，默认开启
 static struct Pane* g_sortPane = NULL;
 
@@ -1001,6 +1007,20 @@ static struct ContextMenuItem* addMenuItemSlot() {
 extern struct FileNode* currPathFileNode;
 extern HINSTANCE globalHInstance;
 extern HWND hwndMain;
+
+// COM 延迟初始化：第一次需要时才调用 OleInitialize，加快启动速度
+static bool g_comInitialized = false;
+void ensureComInitialized(void) {
+    if (!g_comInitialized) {
+        OleInitialize(NULL);
+        g_comInitialized = true;
+    }
+}
+
+// 从注册表加载大图标间距配置（在 main.c 启动时调用）
+void cvLoadIconSpacingConfig(void) {
+    g_largeIconSpacing = cfgGetInt(L"WFM", L"LargeIconSpacing", ICON_SPACING_NORMAL);
+}
 
 // 前向声明（在本文件后面 / main.c 中定义）
 
@@ -1032,6 +1052,11 @@ HWND cvPaneHwnd(int i) {
 
 int cvActiveIdx() {
     return activeIdx;
+}
+
+void cvSetActivePane(int idx) {
+    if (idx < 0 || idx >= NUM_PANES || idx == activeIdx) return;
+    cvSetActiveByHwnd(panes[idx].hwndList);
 }
 
 bool cvSplitOn() {
@@ -1080,6 +1105,33 @@ void cvSetLargeIconSpacing(int mode) {
 
 int cvGetLargeIconSpacing(void) {
     return g_largeIconSpacing;
+}
+
+// 双面板同步浏览开关
+void cvSetSyncPanes(bool enable) {
+    g_syncPanes = enable;
+    HKEY hkey;
+    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+        DWORD val = enable ? 1 : 0;
+        RegSetValueExW(hkey, L"SyncPanes", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
+        RegCloseKey(hkey);
+    }
+}
+
+bool cvGetSyncPanes(void) {
+    return g_syncPanes;
+}
+
+bool cvIsSyncing(void) {
+    return g_syncing;
+}
+
+void cvSetSyncing(bool val) {
+    g_syncing = val;
+}
+
+void cvLoadSyncPanesConfig(void) {
+    g_syncPanes = cfgGetInt(L"WFM", L"SyncPanes", 0) != 0;
 }
 
 bool cvIsContentView(HWND h) {
@@ -1343,7 +1395,7 @@ LRESULT CALLBACK ContentViewWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             if (dragPending && (wParam & MK_LBUTTON)) {
                 int dx = abs((short)LOWORD(lParam) - dragStartPt.x);
                 int dy = abs((short)HIWORD(lParam) - dragStartPt.y);
-                if (dx > BFM_DRAG_THRESHOLD || dy > GetSystemMetrics(SM_CYDRAG)) {
+                if (dx > BFM_DRAG_THRESHOLD || dy > BFM_DRAG_THRESHOLD) {
                     dragPending = false;
                     if (numSelectedItems > 0) startFileDrag(hwnd);
                 }
@@ -1354,7 +1406,7 @@ LRESULT CALLBACK ContentViewWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             if (rightDragPending && (wParam & MK_RBUTTON)) {
                 int dx = abs((short)LOWORD(lParam) - rightDragStartPt.x);
                 int dy = abs((short)HIWORD(lParam) - rightDragStartPt.y);
-                if (dx > BFM_DRAG_THRESHOLD || dy > GetSystemMetrics(SM_CYDRAG)) {
+                if (dx > BFM_DRAG_THRESHOLD || dy > BFM_DRAG_THRESHOLD) {
                     rightDragPending = false;
                     rightDragActive = true;
                     SetCapture(hwnd);
@@ -5504,6 +5556,7 @@ static void dragFallbackOpenWith(HWND hwndMain) {
 }
 
 static void startFileDrag(HWND hwnd) {
+    ensureComInitialized();
     ReleaseCapture();  // DoDragDrop manages its own mouse capture
     updateSelectedItems();
     if (numSelectedItems == 0) return;
