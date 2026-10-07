@@ -51,4 +51,7 @@ void onMenuItemNewFileClick();
 void onMenuItemSelectAllClick();
 void onMenuItemPropertiesClick();
 
+// COM 延迟初始化（第一次需要时才调用 OleInitialize）
+void ensureComInitialized(void);
+
 #endif

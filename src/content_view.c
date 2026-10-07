@@ -946,6 +946,18 @@ static int hoveredItem = -1;
 static IDropTarget* g_dropTarget = NULL;
 static HWND g_dropHwnd = NULL;
 static bool gameMode = false;
+
+// 拖拽启动阈值（像素），比系统默认4像素大，减少误触
+#define BFM_DRAG_THRESHOLD 8
+
+// COM 延迟初始化：第一次需要时才调用 OleInitialize，加快启动速度
+static bool g_comInitialized = false;
+void ensureComInitialized(void) {
+    if (!g_comInitialized) {
+        OleInitialize(NULL);
+        g_comInitialized = true;
+    }
+}
 static HMENU hContextMenu;
 #define MAX_MENU_IDS 256
 static struct ContextMenuItem* menuById[MAX_MENU_IDS];
@@ -1299,7 +1311,7 @@ LRESULT CALLBACK ContentViewWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             if (dragPending && (wParam & MK_LBUTTON)) {
                 int dx = abs((short)LOWORD(lParam) - dragStartPt.x);
                 int dy = abs((short)HIWORD(lParam) - dragStartPt.y);
-                if (dx > GetSystemMetrics(SM_CXDRAG) || dy > GetSystemMetrics(SM_CYDRAG)) {
+                if (dx > BFM_DRAG_THRESHOLD || dy > GetSystemMetrics(SM_CYDRAG)) {
                     dragPending = false;
                     if (numSelectedItems > 0) startFileDrag(hwnd);
                 }
@@ -1310,7 +1322,7 @@ LRESULT CALLBACK ContentViewWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             if (rightDragPending && (wParam & MK_RBUTTON)) {
                 int dx = abs((short)LOWORD(lParam) - rightDragStartPt.x);
                 int dy = abs((short)HIWORD(lParam) - rightDragStartPt.y);
-                if (dx > GetSystemMetrics(SM_CXDRAG) || dy > GetSystemMetrics(SM_CYDRAG)) {
+                if (dx > BFM_DRAG_THRESHOLD || dy > GetSystemMetrics(SM_CYDRAG)) {
                     rightDragPending = false;
                     rightDragActive = true;
                     SetCapture(hwnd);
@@ -5760,6 +5772,7 @@ __declspec(dllimport) UINT WINAPI PrivateExtractIconsW(LPCWSTR, int, int, int, H
 // 对没有内嵌图标的文件回退到 shell 关联图标。
 
 static HICON getBestFileIcon(const wchar_t* path, int* outW, int* outH) {
+    ensureComInitialized();
     HICON hIcon = NULL;
     static const int want[2] = { 256, 48 };
     for (int k = 0; k < 2 && !hIcon; k++) {
@@ -5850,6 +5863,7 @@ static void drawCheckerboard(HDC hdc, RECT* rect, int cellSize) {
 
 // 提取指定尺寸的图标，返回真实尺寸
 static HICON extractIconAtSize(const wchar_t* path, int size, int* outW, int* outH) {
+    ensureComInitialized();
     HICON hIcon = NULL;
     HICON cand = NULL;
     UINT got = PrivateExtractIconsW(path, 0, size, size, &cand, NULL, 1, 0);
