@@ -3,7 +3,7 @@
 Banner File Manager 的中文增强分支，针对 Winlator / Wine 桌面环境优化。
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Version](https://img.shields.io/badge/version-1.2.1--zh.5-green.svg)](https://github.com/mihsian77/bfm-zh/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-green.svg)](https://github.com/mihsian77/bfm-zh/releases)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/mihsian77/bfm-zh/actions)
 [![Platform](https://img.shields.io/badge/platform-Winlator%20%7C%20Wine-orange.svg)]()
 
@@ -31,6 +31,7 @@ Banner File Manager 的中文增强分支，针对 Winlator / Wine 桌面环境�
 - 四种视图：大图标 / 小图标 / 列表 / 详细信息，均支持按名称/类型/大小/日期排序
 - 收藏夹：独立星标图标，注册表持久化
 - 预览窗格：图片缩略预览、文本内容预览、文件属性
+- 图片查看器：预览窗格点开独立窗口，滚轮缩放、拖动平移、同目录翻页
 - 拖拽操作：面板内移动、面板间复制、拖到外部程序运行
 
 ### 智能图标
@@ -93,7 +94,7 @@ Banner File Manager 的中文增强分支，针对 Winlator / Wine 桌面环境�
 
 ## 7-Zip 集成
 
-发布包内置 7-Zip 便携版（当前 26.03，含中文语言包），安装脚本自动部署到 `Z:\opt\apps\7-Zip\`，无需手动安装。
+发布包内置 7-Zip 便携版（含中文语言包），安装脚本自动部署：容器存在 Z 盘时装到 `Z:\opt\apps\7-Zip\`，没有 Z 盘时装到 `C:\7-Zip\`。两个位置程序都会查找，不需要手动安装。
 
 支持的右键操作：
 - 解压到当前目录
@@ -125,7 +126,7 @@ make
 # 或手动编译
 CC=x86_64-w64-mingw32-gcc
 CFLAGS="-O2 -std=c99 -DUNICODE -D_UNICODE -DCOBJMACROS -DWINVER=0x0600 -Wall"
-SRCS="main theme config favorites diff content_view toolbar navbar treeview sizebar statusbar file_node file_actions input_dialog"
+SRCS="main theme config favorites diff content_view toolbar navbar treeview sizebar statusbar file_node file_actions input_dialog image_viewer"
 mkdir -p obj
 for f in $SRCS; do
   $CC $CFLAGS -I./include -I./include/libcdio -c "src/$f.c" -o "obj/$f.o"
