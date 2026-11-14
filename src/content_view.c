@@ -1019,7 +1019,7 @@ void ensureComInitialized(void) {
 
 // 从注册表加载大图标间距配置（在 main.c 启动时调用）
 void cvLoadIconSpacingConfig(void) {
-    g_largeIconSpacing = cfgGetInt(L"WFM", L"LargeIconSpacing", ICON_SPACING_NORMAL);
+    g_largeIconSpacing = cfgGetInt(L"", L"LargeIconSpacing", ICON_SPACING_NORMAL);
 }
 
 // 前向声明（在本文件后面 / main.c 中定义）
@@ -1075,7 +1075,7 @@ void cvApplyFont(HFONT font) {
 void cvToggleMemoryDisplay(void) {
     showMemoryInStatusbar = !showMemoryInStatusbar;
     HKEY hkey;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkey) == ERROR_SUCCESS) {
         DWORD val = showMemoryInStatusbar ? 1 : 0;
         RegSetValueExW(hkey, L"ShowMemory", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
         RegCloseKey(hkey);
@@ -1092,7 +1092,7 @@ void cvSetLargeIconSpacing(int mode) {
     if (mode < 0 || mode > 2) return;
     g_largeIconSpacing = mode;
     HKEY hkey;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkey) == ERROR_SUCCESS) {
         DWORD val = (DWORD)mode;
         RegSetValueExW(hkey, L"LargeIconSpacing", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
         RegCloseKey(hkey);
@@ -1111,7 +1111,7 @@ int cvGetLargeIconSpacing(void) {
 void cvSetSyncPanes(bool enable) {
     g_syncPanes = enable;
     HKEY hkey;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkey) == ERROR_SUCCESS) {
         DWORD val = enable ? 1 : 0;
         RegSetValueExW(hkey, L"SyncPanes", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
         RegCloseKey(hkey);
@@ -1131,7 +1131,7 @@ void cvSetSyncing(bool val) {
 }
 
 void cvLoadSyncPanesConfig(void) {
-    g_syncPanes = cfgGetInt(L"WFM", L"SyncPanes", 0) != 0;
+    g_syncPanes = cfgGetInt(L"", L"SyncPanes", 0) != 0;
 }
 
 bool cvIsContentView(HWND h) {
@@ -1678,7 +1678,7 @@ static void addContextMenuItem(HMENU hMenu, int id, struct ContextMenuItem* cmIt
 
 static void createContextMenuFromRegistry(int* id) {
     HKEY hkeyContextMenu, hkeyItem;
-    if (RegOpenKey(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM\\ContextMenu", &hkeyContextMenu) != ERROR_SUCCESS) return;
+    if (RegOpenKey(HKEY_CURRENT_USER, CONFIG_SUB_CONTEXT, &hkeyContextMenu) != ERROR_SUCCESS) return;
 
     WCHAR itemName[30] = {0};
     WCHAR subitemName[100] = {0};
@@ -1749,7 +1749,7 @@ static void createCDDriveContextMenu(int* id) {
     wchar_t currentISOPath[MAX_PATH] = {0};
     int currentISOPathLen = MAX_PATH;
     HKEY hkey;
-    if (RegOpenKey(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM\\CurrentISOPath", &hkey) == ERROR_SUCCESS) {
+    if (RegOpenKey(HKEY_CURRENT_USER, CONFIG_SUB_ISO, &hkey) == ERROR_SUCCESS) {
         RegQueryValue(hkey, NULL, currentISOPath, (PLONG)&currentISOPathLen);
         RegCloseKey(hkey);
     }
@@ -2646,7 +2646,7 @@ LRESULT contentViewNotify(NMHDR* nmhdr) {
 
             // 保存排序方式到注册表
             HKEY hkeySort;
-            if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkeySort) == ERROR_SUCCESS) {
+            if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkeySort) == ERROR_SUCCESS) {
                 DWORD val = (DWORD)p->sortColumnIdx;
                 RegSetValueExW(hkeySort, L"SortColumn", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
                 RegCloseKey(hkeySort);
@@ -2791,7 +2791,7 @@ void setViewStyle(enum ViewStyle newViewStyle) {
     // 将视图样式持久化到注册表（重启后保留）
 
     HKEY hkey;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkey) == ERROR_SUCCESS) {
         DWORD val = (DWORD)newViewStyle;
         RegSetValueExW(hkey, L"ViewStyle", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
         RegCloseKey(hkey);
@@ -3013,7 +3013,7 @@ void createContentView() {
     DWORD savedSplit = 0;
     DWORD savedMemory = 1;
     HKEY hkeyView;
-    if (RegOpenKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkeyView) == ERROR_SUCCESS) {
+    if (RegOpenKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkeyView) == ERROR_SUCCESS) {
         DWORD data = 0, sz = sizeof(data);
         if (RegQueryValueExW(hkeyView, L"ViewStyle", NULL, NULL, (BYTE*)&data, &sz) == ERROR_SUCCESS)
             savedView = data;
@@ -3156,7 +3156,7 @@ void cvToggleSplit() {
 
     // 保存双面板状态到注册表
     HKEY hkeySplit;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkeySplit) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkeySplit) == ERROR_SUCCESS) {
         DWORD val = splitOn ? 1 : 0;
         RegSetValueExW(hkeySplit, L"SplitView", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
         RegCloseKey(hkeySplit);
@@ -3359,7 +3359,7 @@ void onMenuItemOpenAsAdminClick() {
 // 注册表路径：HKCU\Software\Winlator\WFM\FileAssociations\<.ext> = 程序路径
 // ============================================================================
 
-#define FA_REG_ROOT L"Software\\Winlator\\WFM\\FileAssociations"
+#define FA_REG_ROOT CONFIG_SUB_FILEASSOC
 
 // 从文件路径获取扩展名（含点，如 ".txt"）
 static void faGetFileExt(const wchar_t* path, wchar_t* outExt, int maxLen) {
@@ -3673,7 +3673,7 @@ void onMenuItemOpenWithClick() {
 static bool launcherGetSaved(wchar_t* out) {
     out[0] = L'\0';
     HKEY hk;
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", 0, KEY_READ, &hk) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0, KEY_READ, &hk) == ERROR_SUCCESS) {
         DWORD cb = MAX_PATH * sizeof(wchar_t);
         RegQueryValueExW(hk, L"LauncherPath", NULL, NULL, (LPBYTE)out, &cb);
         RegCloseKey(hk);
@@ -3812,7 +3812,7 @@ static void applyRegistryLocale(const wchar_t* locale) {
     g_regLocaleModified = true;
     // 持久化原始Locale，防止BFM崩溃后无法回退
     HKEY hkey2;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey2) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkey2) == ERROR_SUCCESS) {
         if (g_savedRegLocale[0])
             RegSetValueExW(hkey2, L"SavedLocale", 0, REG_SZ, (BYTE*)g_savedRegLocale, (wcslen(g_savedRegLocale)+1)*sizeof(wchar_t));
         RegCloseKey(hkey2);
@@ -3835,7 +3835,7 @@ static DWORD WINAPI restoreRegistryLocaleThread(LPVOID param) {
         g_regLocaleModified = false;
         // 清除持久化标记
         HKEY hkey2;
-        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", 0, KEY_SET_VALUE, &hkey2) == ERROR_SUCCESS) {
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0, KEY_SET_VALUE, &hkey2) == ERROR_SUCCESS) {
             RegDeleteValueW(hkey2, L"SavedLocale");
             RegCloseKey(hkey2);
         }
@@ -3848,7 +3848,7 @@ void cvEnsureLocaleFallback(void) {
     HKEY hkey;
     wchar_t saved[32] = {0};
     DWORD sz = sizeof(saved);
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", 0, KEY_READ | KEY_SET_VALUE, &hkey) != ERROR_SUCCESS) return;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0, KEY_READ | KEY_SET_VALUE, &hkey) != ERROR_SUCCESS) return;
     if (RegQueryValueExW(hkey, L"SavedLocale", NULL, NULL, (BYTE*)saved, &sz) == ERROR_SUCCESS && saved[0]) {
         HKEY hIntl;
         if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Control Panel\\International", 0, KEY_SET_VALUE, &hIntl) == ERROR_SUCCESS) {
@@ -4494,7 +4494,7 @@ void onMenuItemLauncherChooseClick(void) {
         if (MessageBoxW(hwndMain, msg, lc_str.launcher_choose,
                         MB_OKCANCEL | MB_ICONQUESTION) != IDOK) {
             HKEY hk;
-            if (RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", 0,
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0,
                               KEY_WRITE, &hk) == ERROR_SUCCESS) {
                 RegDeleteValueW(hk, L"LauncherPath");
                 RegCloseKey(hk);
@@ -4523,7 +4523,7 @@ void onMenuItemLauncherChooseClick(void) {
     if (pfn && pfn(&ofn) && exePath[0]) {
         HKEY hk;
         DWORD disp = 0;
-        if (RegCreateKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", 0, NULL, 0,
+        if (RegCreateKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0, NULL, 0,
                             KEY_WRITE, NULL, &hk, &disp) == ERROR_SUCCESS) {
             RegSetValueExW(hk, L"LauncherPath", 0, REG_SZ, (const BYTE*)exePath,
                            (DWORD)((wcslen(exePath) + 1) * sizeof(wchar_t)));
@@ -4694,7 +4694,7 @@ void onMenuItemLoadISOImageClick() {
         return;
     }
 
-    if (RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM\\CurrentISOPath", &hkey) == ERROR_SUCCESS) {
+    if (RegCreateKey(HKEY_CURRENT_USER, CONFIG_SUB_ISO, &hkey) == ERROR_SUCCESS) {
         RegSetValue(hkey, NULL, REG_SZ, currentISOPath, (wcslen(currentISOPath) + 1) * sizeof(wchar_t));
         RegCloseKey(hkey);
     }
@@ -4713,7 +4713,7 @@ void onMenuItemLoadISOImageClick() {
 
 void onMenuItemUnloadISOImageClick() {
     if (GetFileAttributesW(L"X:\\") != INVALID_FILE_ATTRIBUTES) clearDirectory(L"X:");
-    RegDeleteKey(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM\\CurrentISOPath");
+    RegDeleteKey(HKEY_CURRENT_USER, CONFIG_SUB_ISO);
     navigateRefresh();
 }
 

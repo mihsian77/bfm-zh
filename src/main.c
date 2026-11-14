@@ -465,7 +465,7 @@ static int g_fontSizePt = 11;  // 用户可配置的UI字体大小（pt），默
 // 从注册表加载字体大小设置
 static void loadFontSize(void) {
     HKEY hkey;
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", 0, KEY_READ, &hkey) == ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0, KEY_READ, &hkey) == ERROR_SUCCESS) {
         DWORD val = 0, sz = sizeof(val);
         if (RegQueryValueExW(hkey, L"FontSize", NULL, NULL, (BYTE*)&val, &sz) == ERROR_SUCCESS) {
             if (val >= 8 && val <= 20) g_fontSizePt = (int)val;
@@ -477,7 +477,7 @@ static void loadFontSize(void) {
 // 保存字体大小到注册表
 static void saveFontSize(int pt) {
     HKEY hkey;
-    if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkey) == ERROR_SUCCESS) {
+    if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkey) == ERROR_SUCCESS) {
         DWORD val = (DWORD)pt;
         RegSetValueExW(hkey, L"FontSize", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
         RegCloseKey(hkey);
@@ -786,7 +786,7 @@ void mainMenuCommand(WPARAM wParam) {
             // 保存显示隐藏文件设置到注册表
             {
                 HKEY hkeyHidden;
-                if (RegCreateKeyW(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM", &hkeyHidden) == ERROR_SUCCESS) {
+                if (RegCreateKeyW(HKEY_CURRENT_USER, CONFIG_ROOT, &hkeyHidden) == ERROR_SUCCESS) {
                     DWORD val = showHiddenFiles ? 1 : 0;
                     RegSetValueExW(hkeyHidden, L"ShowHidden", 0, REG_DWORD, (BYTE*)&val, sizeof(val));
                     RegCloseKey(hkeyHidden);
@@ -1685,6 +1685,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
     loadLCStrings(L"zh-CN");
 
     globalHInstance = hInstance;
+
+    // 首次启动把旧版本分散在两处的设置迁入统一配置根
+    cfgMigrateLegacy();
 
     // 加载用户配置的字体大小（必须在第一次调用getUIFont之前）
     loadFontSize();

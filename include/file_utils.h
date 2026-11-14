@@ -220,7 +220,7 @@ static inline bool getCurrentISOPath(wchar_t* result) {
     wmemset(result, L'\0', MAX_PATH);
     int pathLen = MAX_PATH;
     HKEY hkey;
-    if (RegOpenKey(HKEY_CURRENT_USER, L"SOFTWARE\\Winlator\\WFM\\CurrentISOPath", &hkey) == ERROR_SUCCESS) {
+    if (RegOpenKey(HKEY_CURRENT_USER, CONFIG_SUB_ISO, &hkey) == ERROR_SUCCESS) {
         RegQueryValue(hkey, NULL, result, (PLONG)&pathLen);
         RegCloseKey(hkey);
     }

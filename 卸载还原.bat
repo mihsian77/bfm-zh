@@ -33,7 +33,7 @@ if errorlevel 2 (
 )
 
 echo.
-echo [1/3] 正在关闭 WFM...
+echo [1/4] 正在关闭 WFM...
 taskkill /f /im wfm.exe >nul 2>&1
 set "WAIT_COUNT=0"
 :wait_exit
@@ -52,7 +52,7 @@ goto :wait_exit
 echo       WFM 已关闭
 echo.
 
-echo [2/3] 正在还原原版...
+echo [2/4] 正在还原原版...
 if exist "%TARGET_DIR%\wfm.exe.bak_zh" (
     for %%A in ("%TARGET_DIR%\wfm.exe.bak_zh") do set "BAK_SIZE=%%~zA"
     move /y "%TARGET_DIR%\wfm.exe.bak_zh" "%TARGET_DIR%\wfm.exe" >nul
@@ -69,7 +69,12 @@ if exist "%TARGET_DIR%\libcdio.dll.bak_zh" (
     echo       libcdio.dll 已还原
 )
 
-echo [3/3] 正在启动 WFM...
+echo [3/4] 正在清理本分支写入的配置...
+reg delete "HKCU\Software\BFM-zh" /f >nul 2>&1
+echo       配置已清理（原版 WFM 的设置不受影响）
+echo.
+
+echo [4/4] 正在启动 WFM...
 start "" "%TARGET_DIR%\wfm.exe"
 echo.
 echo ============================================

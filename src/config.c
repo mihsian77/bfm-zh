@@ -1,5 +1,6 @@
 #include "config.h"
 #include <string.h>
+#include <stdlib.h>
 
 static HKEY openSection(const wchar_t* section, bool create) {
     wchar_t path[256] = {0};
@@ -72,4 +73,87 @@ bool cfgDeleteSection(const wchar_t* section) {
         wcscat_s(path, 256, section);
     }
     return RegDeleteKeyW(HKEY_CURRENT_USER, path) == ERROR_SUCCESS;
+}
+
+// ============================================================================
+// 旧配置迁移
+//
+// 规则：只把旧根里的值补进新根，新根已有同名值则不覆盖；旧键一律不清除。
+// 这样即使迁移逻辑有偏差，用户原设置仍在原处，可随时回退到旧版本。
+// ============================================================================
+
+static bool regValueExists(HKEY key, const wchar_t* name) {
+    DWORD type = 0, size = 0;
+    return RegQueryValueExW(key, name, NULL, &type, NULL, &size) == ERROR_SUCCESS;
+}
+
+static void regCopyValues(HKEY src, HKEY dst) {
+    DWORD index = 0;
+    wchar_t name[256];
+
+    for (;;) {
+        DWORD nameLen = 256, size = 0, type = 0;
+        if (RegEnumValueW(src, index, name, &nameLen, NULL, &type, NULL, &size) != ERROR_SUCCESS) break;
+        index++;
+
+        if (type != REG_DWORD && type != REG_SZ && type != REG_EXPAND_SZ && type != REG_BINARY) continue;
+        if (size == 0) continue;
+        if (regValueExists(dst, name)) continue;
+
+        BYTE* data = (BYTE*)malloc(size);
+        if (!data) return;
+
+        DWORD got = size;
+        if (RegQueryValueExW(src, name, NULL, &type, data, &got) == ERROR_SUCCESS && got > 0) {
+            RegSetValueExW(dst, name, 0, type, data, got);
+        }
+        free(data);
+    }
+}
+
+static void regCopySubKeys(HKEY src, HKEY dst, int depth) {
+    if (depth > 3) return;
+
+    DWORD index = 0;
+    wchar_t name[256];
+
+    for (;;) {
+        DWORD nameLen = 256;
+        if (RegEnumKeyExW(src, index, name, &nameLen, NULL, NULL, NULL, NULL) != ERROR_SUCCESS) break;
+        index++;
+
+        HKEY srcSub = NULL;
+        if (RegOpenKeyExW(src, name, 0, KEY_READ, &srcSub) != ERROR_SUCCESS) continue;
+
+        HKEY dstSub = NULL;
+        if (RegCreateKeyExW(dst, name, 0, NULL, 0, KEY_READ | KEY_WRITE, NULL, &dstSub, NULL) == ERROR_SUCCESS) {
+            regCopyValues(srcSub, dstSub);
+            regCopySubKeys(srcSub, dstSub, depth + 1);
+            RegCloseKey(dstSub);
+        }
+        RegCloseKey(srcSub);
+    }
+}
+
+static void regMigrateFrom(const wchar_t* legacyRoot) {
+    HKEY src = NULL;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, legacyRoot, 0, KEY_READ, &src) != ERROR_SUCCESS) return;
+
+    HKEY dst = NULL;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, CONFIG_ROOT, 0, NULL, 0,
+                        KEY_READ | KEY_WRITE, NULL, &dst, NULL) == ERROR_SUCCESS) {
+        regCopyValues(src, dst);
+        regCopySubKeys(src, dst, 0);
+        RegCloseKey(dst);
+    }
+    RegCloseKey(src);
+}
+
+void cfgMigrateLegacy(void) {
+    if (cfgGetInt(L"", L"LegacyMigrated", 0) != 0) return;
+
+    regMigrateFrom(CONFIG_LEGACY_ROOT);
+    regMigrateFrom(CONFIG_LEGACY_ROOT2);
+
+    cfgSetInt(L"", L"LegacyMigrated", 1);
 }
