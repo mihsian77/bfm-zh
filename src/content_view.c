@@ -1358,8 +1358,30 @@ static void execCommandLine(wchar_t *command) {
     CloseHandle(shExecInfo.hProcess);
 }
 
+// ---------------------------------------------------------------------------
+// 后台任务让路
+//
+// 目录大小统计、图标提取这类后台工作在用户滚动列表时会抢 CPU，
+// 表现就是滚动掉帧。这里记录最近一次滚动的时间，后台循环发现刚滚动过
+// 就主动让出时间片，界面线程优先拿到 CPU。
+// ---------------------------------------------------------------------------
+
+static volatile LONG g_lastScrollTick = 0;
+
+static void cvMarkUserScroll(void) {
+    InterlockedExchange(&g_lastScrollTick, (LONG)GetTickCount());
+}
+
+static void cvYieldIfScrolling(void) {
+    LONG last = InterlockedCompareExchange(&g_lastScrollTick, 0, 0);
+    if (last != 0 && (LONG)(GetTickCount() - (DWORD)last) < 120) {
+        Sleep(40);
+    }
+}
+
 LRESULT CALLBACK ContentViewWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (themeScrollbarsHookBefore(hwnd, msg, wParam)) return 0;
+    if (msg == WM_MOUSEWHEEL || msg == WM_VSCROLL) cvMarkUserScroll();
     switch (msg) {
         case WM_SETFOCUS: {
             cvSetActiveByHwnd(hwnd);
@@ -2685,6 +2707,7 @@ LRESULT contentViewNotify(NMHDR* nmhdr) {
 }
 
 static DWORD WINAPI searchTask(void* param) {
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     struct SearchData* searchData = (struct SearchData*)param;
     struct Pane* p = searchData->pane;
 
@@ -5088,6 +5111,7 @@ struct ExtractArg {
 };
 
 static DWORD WINAPI extractThreadProc(LPVOID param) {
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     struct ExtractArg* arg = (struct ExtractArg*)param;
     CreateDirectoryW(arg->outDir, NULL);
     wchar_t cmdLine[MAX_PATH * 3 + 32];
@@ -5176,6 +5200,7 @@ struct SevenZipArg {
 };
 
 static DWORD WINAPI sevenZipThreadProc(LPVOID param) {
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     struct SevenZipArg* arg = (struct SevenZipArg*)param;
     wcscpy_s(g_sevenZipLastOpName, MAX_PATH, arg->displayName);
     STARTUPINFOW si = {0};
@@ -6461,6 +6486,8 @@ void onMenuItemGameModeClick(void) {
 struct FolderSizeReq { struct FileNode* node; HWND hwnd; };
 static unsigned long __stdcall folderSizeThread(void* param) {
     struct FolderSizeReq* req=(struct FolderSizeReq*)param;
+    // 统计大目录可能跑很久，降到最低优先级，不要和界面抢时间片
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_LOWEST);
     // 递归求和
 
     unsigned long long total=0;
@@ -6471,7 +6498,9 @@ static unsigned long __stdcall folderSizeThread(void* param) {
 
     wchar_t stack[64][MAX_PATH]; int sp=0;
     wcscpy_s(stack[sp],MAX_PATH,base); sp++;
+    int dirCount=0;
     while(sp>0){
+        if(((++dirCount)&31)==0) cvYieldIfScrolling();
         sp--; wchar_t cur[MAX_PATH]; wcscpy_s(cur,MAX_PATH,stack[sp]);
         wchar_t pattern[MAX_PATH]; swprintf_s(pattern,MAX_PATH,L"%ls\\*",cur);
         WIN32_FIND_DATAW fd; HANDLE hf=FindFirstFileW(pattern,&fd);
