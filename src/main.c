@@ -686,6 +686,12 @@ INT_PTR CALLBACK AboutDialogProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM l
             SetWindowText(GetDlgItem(hwndDlg, IDC_APP_VERSION), lc_str.app_version);
             SetWindowText(GetDlgItem(hwndDlg, IDC_APP_DEV_NAME), lc_str.app_dev_name);
             SetWindowText(GetDlgItem(hwndDlg, IDC_APP_MODIFIER), lc_str.modifier);
+            SetWindowText(GetDlgItem(hwndDlg, IDC_APP_UPSTREAM), lc_str.upstream);
+            if (lc_str.repo_link) {
+                wchar_t link[512];
+                swprintf_s(link, 512, L"<a href=\"%ls\">%ls</a>", lc_str.repo_link, lc_str.repo_link);
+                SetWindowText(GetDlgItem(hwndDlg, IDC_APP_REPO), link);
+            }
             return (INT_PTR)TRUE;
         }
     }

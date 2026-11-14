@@ -119,6 +119,7 @@
 #define IDC_PROP_LATTRIBUTES 145
 #define IDC_APP_MODIFIER 146
 #define IDC_APP_REPO 147
+#define IDC_APP_UPSTREAM 148
 
 #ifndef IDC_STATIC
 #define IDC_STATIC -1
@@ -129,16 +130,16 @@
 // （res/resource.rc）；APP_VERSION 是关于对话框中显示的宽字符串。
 
 #define APP_VERSION_MAJOR 1
-#define APP_VERSION_MINOR 2
-#define APP_VERSION_PATCH 1
-#define APP_VERSION_STR "1.2.1"
+#define APP_VERSION_MINOR 3
+#define APP_VERSION_PATCH 0
+#define APP_VERSION_STR "1.3.0"
 
 #define WIDEN_(x) L##x
 #define WIDEN(x) WIDEN_(x)
 
-#define APP_NAME L"Banner File Manager"
+#define APP_NAME L"BFM 中文美化增强版"
 #define APP_VERSION WIDEN(APP_VERSION_STR)
-#define APP_DEV_NAME L"The412Banner (based on WFM by BrunoSX)"
+#define APP_DEV_NAME L"hao728"
 
 #ifndef RESOURCE_H
 #define RESOURCE_H
@@ -148,6 +149,7 @@ struct LC_STR {
     wchar_t* app_name;
     wchar_t* app_version;
     wchar_t* app_dev_name;
+    wchar_t* upstream;
     wchar_t* application;
     wchar_t* shortcut;
     wchar_t* file;
