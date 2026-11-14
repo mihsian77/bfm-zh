@@ -6,7 +6,7 @@
 static inline void loadStrings_zh() {
     lc_str.app_name = APP_NAME;
     lc_str.app_version = L"\u7248\u672c " APP_VERSION;
-    lc_str.app_dev_name = L"by " APP_DEV_NAME;
+    lc_str.app_dev_name = L"维护者 " APP_DEV_NAME;
     lc_str.application = L"\u5e94\u7528\u7a0b\u5e8f";
     lc_str.shortcut = L"\u5feb\u6377\u65b9\u5f0f";
     lc_str.file = L"\u6587\u4ef6";
@@ -99,8 +99,9 @@ static inline void loadStrings_zh() {
     lc_str.hash_md5 = L"MD5: %ls";
     lc_str.hash_sha1 = L"SHA1: %ls";
     lc_str.new_file_submenu = L"\u65b0\u5efa";
-    lc_str.modifier = L"Modified by hao728 (GPL-3.0)";
-    lc_str.repo_link = L"https://github.com/hao728/bfm-zh";
+    lc_str.modifier = L"许可证 GPL-3.0-or-later";
+    lc_str.repo_link = L"https://github.com/mihsian77/bfm-zh";
+    lc_str.upstream = L"上游 The412Banner (GPL-3.0) / 原版 WFM BrunoSX (MIT)";
     lc_str.nav_menu = L"\u5bfc\u822a";
     lc_str.nav_back = L"\u540e\u9000";
     lc_str.nav_forward = L"\u524d\u8fdb";

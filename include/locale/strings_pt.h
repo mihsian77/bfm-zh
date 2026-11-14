@@ -6,7 +6,7 @@
 static inline void loadStrings_pt() {
     lc_str.app_name = APP_NAME;
     lc_str.app_version = L"Versão " APP_VERSION;
-    lc_str.app_dev_name = L"por " APP_DEV_NAME;
+    lc_str.app_dev_name = L"Modificado por " APP_DEV_NAME;
     lc_str.application = L"Aplicação";
     lc_str.shortcut = L"Atalho";
     lc_str.file = L"Arquivo";
@@ -101,8 +101,9 @@ static inline void loadStrings_pt() {
     lc_str.hash_md5 = L"MD5: %ls";
     lc_str.hash_sha1 = L"SHA1: %ls";
     lc_str.new_file_submenu = L"Novo";
-    lc_str.modifier = L"Modified by hao728 (GPL-3.0)";
-    lc_str.repo_link = L"https://github.com/hao728/bfm-zh";
+    lc_str.modifier = L"Licença GPL-3.0-or-later";
+    lc_str.repo_link = L"https://github.com/mihsian77/bfm-zh";
+    lc_str.upstream = L"Upstream: The412Banner (GPL-3.0) / WFM original por BrunoSX (MIT)";
     lc_str.nav_menu = L"Ir";
     lc_str.nav_back = L"Voltar";
     lc_str.nav_forward = L"Avancar";

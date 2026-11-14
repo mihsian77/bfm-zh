@@ -6,7 +6,7 @@
 static inline void loadStrings_ru() {
     lc_str.app_name = APP_NAME;
     lc_str.app_version = L"Версия " APP_VERSION;
-    lc_str.app_dev_name = L"от " APP_DEV_NAME;
+    lc_str.app_dev_name = L"Изменения: " APP_DEV_NAME;
     lc_str.application = L"Приложение";
     lc_str.shortcut = L"Ярлык";
     lc_str.file = L"Файл";
@@ -101,8 +101,9 @@ static inline void loadStrings_ru() {
     lc_str.hash_md5 = L"MD5: %ls";
     lc_str.hash_sha1 = L"SHA1: %ls";
     lc_str.new_file_submenu = L"\u0421\u043e\u0437\u0434\u0430\u0442\u044c";
-    lc_str.modifier = L"Modified by hao728 (GPL-3.0)";
-    lc_str.repo_link = L"https://github.com/hao728/bfm-zh";
+    lc_str.modifier = L"Лицензия GPL-3.0-or-later";
+    lc_str.repo_link = L"https://github.com/mihsian77/bfm-zh";
+    lc_str.upstream = L"Upstream: The412Banner (GPL-3.0) / оригинал WFM от BrunoSX (MIT)";
     lc_str.nav_menu = L"\u041f\u0435\u0440\u0435\u0445\u043e\u0434";
     lc_str.nav_back = L"\u041d\u0430\u0437\u0430\u0434";
     lc_str.nav_forward = L"\u0412\u043f\u0435\u0440\u0451\u0434";
