@@ -4992,6 +4992,7 @@ static bool find7z(wchar_t* out) {
         L"C:\\Program Files\\7-Zip\\7z.exe",
         L"C:\\Program Files (x86)\\7-Zip\\7z.exe",
         L"C:\\7-Zip\\7z.exe",
+        L"C:\\opt\\apps\\7-Zip\\7z.exe",
         L"D:\\7-Zip\\7z.exe",
         L"Z:\\opt\\apps\\7-Zip\\7z.exe",
         L"Z:\\opt\\apps\\7-Zip\\7za.exe",

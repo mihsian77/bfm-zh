@@ -4,7 +4,7 @@ title BFM 中文美化版 - 安装程序
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo   BFM 中文美化版 v1.2.1-zh.5 安装程序
+echo   BFM 中文美化增强版 v1.3.0 安装程序
 echo ============================================
 echo.
 
@@ -71,6 +71,11 @@ echo.
 
 echo [2/5] 正在安装 7-Zip...
 set "SEVENZIP_DIR=Z:\opt\apps\7-Zip"
+rem Z 盘未挂载时装到 C:\7-Zip，程序两个位置都会查找
+if not exist "Z:\" (
+    set "SEVENZIP_DIR=C:\7-Zip"
+    echo       Z 盘不可用，改装到 C:\7-Zip
+)
 if exist "%SEVENZIP_DIR%\7z.exe" (
     echo       7-Zip 已安装，跳过
 ) else if exist "%SCRIPT_DIR%7-Zip\7z.exe" (
