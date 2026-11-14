@@ -8,6 +8,8 @@ obj/
 *.exe
 *.exe.dat
 *.dll
+# libcdio.dll 是链接时需要的导入库，必须入库
+!libcdio.dll
 
 # 压缩包
 *.zip
