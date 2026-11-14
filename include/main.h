@@ -57,6 +57,7 @@ static inline void timetToFileTime(time_t t, LPFILETIME result) {
 #include "file_actions.h"
 #include "file_utils.h"
 #include "input_dialog.h"
+#include "image_viewer.h"
 
 extern HINSTANCE globalHInstance;
 #include "strings.h"

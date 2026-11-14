@@ -1,4 +1,4 @@
-OBJS=obj/main.o obj/content_view.o obj/config.o obj/theme.o obj/favorites.o obj/diff.o obj/toolbar.o obj/navbar.o obj/treeview.o obj/sizebar.o obj/statusbar.o obj/file_node.o obj/file_actions.o obj/input_dialog.o obj/resource.o
+OBJS=obj/main.o obj/content_view.o obj/config.o obj/theme.o obj/favorites.o obj/diff.o obj/toolbar.o obj/navbar.o obj/treeview.o obj/sizebar.o obj/statusbar.o obj/file_node.o obj/file_actions.o obj/input_dialog.o obj/image_viewer.o obj/resource.o
 INCLUDE_DIR=-I.\include -I.\include\libcdio
 EXE_NAME=wfm.exe
 

@@ -13,7 +13,7 @@ CC=x86_64-w64-mingw32-gcc
 RC=x86_64-w64-mingw32-windres
 INCLUDES="-I./include -I./include/libcdio"
 CFLAGS="-O2 -std=c99 -DUNICODE -D_UNICODE -DCOBJMACROS -DWINVER=0x0600 -Wall"
-SRCS="main theme config favorites diff content_view toolbar navbar treeview sizebar statusbar file_node file_actions input_dialog"
+SRCS="main theme config favorites diff content_view toolbar navbar treeview sizebar statusbar file_node file_actions input_dialog image_viewer"
 
 mkdir -p obj
 for f in $SRCS; do
